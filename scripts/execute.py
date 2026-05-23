@@ -187,14 +187,17 @@ class StepExecutor:
 
     @staticmethod
     def _build_step_context(index: dict) -> str:
-        lines = [
-            f"- Step {s['step']} ({s['name']}): {s['summary']}"
-            for s in index["steps"]
-            if s["status"] == "completed" and s.get("summary")
-        ]
+        lines = []
+        for s in index["steps"]:
+            if s["status"] != "completed":
+                continue
+            # contract 우선, 없으면 summary fallback (하위 호환).
+            text = s.get("contract") or s.get("summary")
+            if text:
+                lines.append(f"- Step {s['step']} ({s['name']}): {text}")
         if not lines:
             return ""
-        return "## 이전 Step 산출물\n\n" + "\n".join(lines) + "\n\n"
+        return "## 이전 Step 산출물 (공개 계약)\n\n" + "\n".join(lines) + "\n\n"
 
     def _build_preamble(self, guardrails: str, step_context: str,
                         prev_error: Optional[str] = None) -> str:
@@ -217,7 +220,10 @@ class StepExecutor:
             f"3. 기존 테스트를 깨뜨리지 마라.\n"
             f"4. AC(Acceptance Criteria) 검증을 직접 실행하라.\n"
             f"5. /phases/{self._phase_dir_name}/index.json의 해당 step status를 업데이트하라:\n"
-            f"   - AC 통과 → \"completed\" + \"summary\" 필드에 이 step의 산출물을 한 줄로 요약\n"
+            f"   - AC 통과 → \"completed\" + 아래 두 필드를 모두 기록\n"
+            f"     · \"summary\": 사람이 보는 상세 기록 (제한 없음, 무엇을/왜/어떻게/특이사항)\n"
+            f"     · \"contract\": 다음 step LLM이 알아야 할 공개 계약만 1~3줄\n"
+            f"       (공개 API 시그니처, 핵심 invariant, 새 산출물 경로 등. 예: \"engine.execute_rules(rules_dir, model)->dict 추가. eval/exec 금지 유지.\")\n"
             f"   - {self.MAX_RETRIES}회 수정 시도 후에도 실패 → \"error\" + \"error_message\" 기록\n"
             f"   - 사용자 개입이 필요한 경우 (API 키, 인증, 수동 설정 등) → \"blocked\" + \"blocked_reason\" 기록 후 즉시 중단\n"
             f"6. 모든 변경사항을 커밋하라:\n"

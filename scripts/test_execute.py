@@ -226,6 +226,38 @@ class TestBuildStepContext:
         result = ex.StepExecutor._build_step_context(index)
         assert result.startswith("## 이전 Step 산출물")
 
+    def test_header_mentions_contract(self, phase_dir):
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
+        result = ex.StepExecutor._build_step_context(index)
+        assert "공개 계약" in result
+
+    def test_contract_preferred_over_summary(self, phase_dir):
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
+        index["steps"][0]["contract"] = "API: setup() 추가. invariant 유지."
+        result = ex.StepExecutor._build_step_context(index)
+        assert "API: setup() 추가" in result
+        assert "프로젝트 초기화 완료" not in result
+
+    def test_summary_used_when_no_contract(self, phase_dir):
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
+        result = ex.StepExecutor._build_step_context(index)
+        assert "프로젝트 초기화 완료" in result
+        assert "핵심 로직 구현" in result
+
+    def test_contract_only_no_summary(self, phase_dir):
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
+        del index["steps"][0]["summary"]
+        index["steps"][0]["contract"] = "exit_code=0, no public API."
+        result = ex.StepExecutor._build_step_context(index)
+        assert "exit_code=0" in result
+
+    def test_excludes_when_both_missing(self, phase_dir):
+        index = json.loads((phase_dir / "index.json").read_text(encoding="utf-8"))
+        del index["steps"][0]["summary"]
+        result = ex.StepExecutor._build_step_context(index)
+        assert "setup" not in result
+        assert "core" in result
+
 
 # ---------------------------------------------------------------------------
 # _build_preamble
@@ -270,6 +302,11 @@ class TestBuildPreamble:
     def test_includes_index_path(self, executor):
         result = executor._build_preamble("", "")
         assert "/phases/0-mvp/index.json" in result
+
+    def test_instructs_summary_and_contract_fields(self, executor):
+        result = executor._build_preamble("", "")
+        assert "\"summary\"" in result
+        assert "\"contract\"" in result
 
 
 # ---------------------------------------------------------------------------
