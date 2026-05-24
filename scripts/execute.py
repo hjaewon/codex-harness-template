@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Harness Step Executor — phase 내 step을 순차 실행하고 자가 교정한다.
+Harness Step Executor — phase 내 step을 Codex로 순차 실행하고 자가 교정한다.
 
 Usage:
     python3 scripts/execute.py <phase-dir> [--push]
