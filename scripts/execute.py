@@ -113,13 +113,16 @@ class StepExecutor:
     def _checkout_branch(self):
         branch = f"feat-{self._phase_name}"
 
-        r = self._run_git("rev-parse", "--abbrev-ref", "HEAD")
+        r = self._run_git("rev-parse", "--git-dir")
         if r.returncode != 0:
             print(f"  ERROR: git을 사용할 수 없거나 git repo가 아닙니다.")
             print(f"  {r.stderr.strip()}")
             sys.exit(1)
 
-        if r.stdout.strip() == branch:
+        r = self._run_git("symbolic-ref", "--quiet", "--short", "HEAD")
+        current_branch = r.stdout.strip() if r.returncode == 0 else ""
+
+        if current_branch == branch:
             return
 
         r = self._run_git("rev-parse", "--verify", branch)
@@ -136,10 +139,15 @@ class StepExecutor:
     def _commit_step(self, step_num: int, step_name: str):
         output_rel = f"phases/{self._phase_dir_name}/step{step_num}-output.json"
         index_rel = f"phases/{self._phase_dir_name}/index.json"
+        has_head = self._run_git("rev-parse", "--verify", "HEAD").returncode == 0
 
         self._run_git("add", "-A")
-        self._run_git("reset", "HEAD", "--", output_rel)
-        self._run_git("reset", "HEAD", "--", index_rel)
+        if has_head:
+            self._run_git("reset", "HEAD", "--", output_rel)
+            self._run_git("reset", "HEAD", "--", index_rel)
+        else:
+            self._run_git("rm", "--cached", "--ignore-unmatch", "--", output_rel)
+            self._run_git("rm", "--cached", "--ignore-unmatch", "--", index_rel)
 
         if self._run_git("diff", "--cached", "--quiet").returncode != 0:
             msg = self.FEAT_MSG.format(phase=self._phase_name, num=step_num, name=step_name)
@@ -176,9 +184,9 @@ class StepExecutor:
 
     def _load_guardrails(self) -> str:
         sections = []
-        agent_md = ROOT / "AGENT.md"
-        if agent_md.exists():
-            sections.append(f"## 프로젝트 규칙 (AGENT.md)\n\n{agent_md.read_text(encoding='utf-8')}")
+        agents_md = ROOT / "AGENTS.md"
+        if agents_md.exists():
+            sections.append(f"## 프로젝트 규칙 (AGENTS.md)\n\n{agents_md.read_text(encoding='utf-8')}")
         docs_dir = ROOT / "docs"
         if docs_dir.is_dir():
             for doc in sorted(docs_dir.glob("*.md")):
@@ -242,7 +250,18 @@ class StepExecutor:
 
         prompt = preamble + step_file.read_text(encoding="utf-8")
         result = subprocess.run(
-            ["codex", "exec", "--dangerously-bypass-approvals-and-sandbox", "--json", prompt],
+            [
+                "codex",
+                "exec",
+                "--json",
+                "--sandbox",
+                "danger-full-access",
+                "-c",
+                'approval_policy="never"',
+                "--cd",
+                self._root,
+                prompt,
+            ],
             cwd=self._root, capture_output=True, text=True, timeout=1800,
         )
 

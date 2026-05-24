@@ -1,6 +1,6 @@
 ---
 name: harness-review
-description: Use when the user asks to review changes in this Harness repository against AGENT.md, docs/ARCHITECTURE.md, docs/ADR.md, tests, buildability, or CRITICAL project rules.
+description: Use when the user asks to review changes in this Harness repository against AGENTS.md, docs/ARCHITECTURE.md, docs/ADR.md, tests, buildability, or CRITICAL project rules.
 ---
 
 # Harness Review
@@ -12,7 +12,7 @@ Review repository changes against the Harness project rules and architecture doc
 ## Review Workflow
 
 1. Read these files first:
-   - `/AGENT.md`
+   - `/AGENTS.md`
    - `/docs/ARCHITECTURE.md`
    - `/docs/ADR.md`
 2. Inspect changed files with `git status`, `git diff`, and focused file reads.
@@ -27,7 +27,7 @@ Review repository changes against the Harness project rules and architecture doc
 | 아키텍처 준수 | 변경사항이 `ARCHITECTURE.md`의 디렉터리 구조와 책임 분리를 따르는가? |
 | 기술 스택 준수 | `ADR.md`의 기술 선택을 벗어나지 않았는가? |
 | 테스트 존재 | 새 기능이나 동작 변경에 대한 테스트가 있는가? |
-| CRITICAL 규칙 | `AGENT.md`의 CRITICAL 규칙을 위반하지 않았는가? |
+| CRITICAL 규칙 | `AGENTS.md`의 CRITICAL 규칙을 위반하지 않았는가? |
 | 빌드 가능 | 빌드 또는 테스트 명령이 에러 없이 통과하는가? |
 
 ## Output Format

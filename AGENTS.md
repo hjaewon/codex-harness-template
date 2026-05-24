@@ -1,9 +1,9 @@
 # 프로젝트: {프로젝트명}
 
 > 매 작업 전 Codex가 자동으로 읽는 행동 지침이다. 사람이 직접 편집하지 말고,
-> "이걸 AGENT.md에 반영해줘"라고 Codex에게 시켜 누적시킨다.
+> "이걸 AGENTS.md에 반영해줘"라고 Codex에게 시켜 누적시킨다.
 >
-> **이 파일을 편집할 때는 반드시 먼저 `.codex/AGENT-EDITING-RULES.md`를 Read한 뒤 시작하라.**
+> **이 파일을 편집할 때는 반드시 먼저 `.codex/AGENTS-EDITING-RULES.md`를 Read한 뒤 시작하라.**
 
 ## 기술 스택
 - {프레임워크 (예: Next.js 15)}

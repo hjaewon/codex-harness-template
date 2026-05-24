@@ -1,4 +1,4 @@
 interface:
   display_name: "Harness Review"
   short_description: "Review Harness repository changes"
-  default_prompt: "Use Harness Review to review repository changes against AGENT.md and docs."
+  default_prompt: "Use Harness Review to review repository changes against AGENTS.md and docs."

@@ -24,12 +24,12 @@ import execute as ex
 
 @pytest.fixture
 def tmp_project(tmp_path):
-    """phases/, AGENT.md, docs/ 를 갖춘 임시 프로젝트 구조."""
+    """phases/, AGENTS.md, docs/ 를 갖춘 임시 프로젝트 구조."""
     phases_dir = tmp_path / "phases"
     phases_dir.mkdir()
 
-    agent_md = tmp_path / "AGENT.md"
-    agent_md.write_text("# Rules\n- rule one\n- rule two", encoding="utf-8")
+    agents_md = tmp_path / "AGENTS.md"
+    agents_md.write_text("# Rules\n- rule one\n- rule two", encoding="utf-8")
 
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
@@ -146,7 +146,7 @@ class TestJsonHelpers:
 # ---------------------------------------------------------------------------
 
 class TestLoadGuardrails:
-    def test_loads_agent_md_and_docs(self, executor, tmp_project):
+    def test_loads_agents_md_and_docs(self, executor, tmp_project):
         with patch.object(ex, "ROOT", tmp_project):
             result = executor._load_guardrails()
         assert "# Rules" in result
@@ -166,11 +166,11 @@ class TestLoadGuardrails:
         guide_pos = result.index("guide")
         assert arch_pos < guide_pos
 
-    def test_no_agent_md(self, executor, tmp_project):
-        (tmp_project / "AGENT.md").unlink()
+    def test_no_agents_md(self, executor, tmp_project):
+        (tmp_project / "AGENTS.md").unlink()
         with patch.object(ex, "ROOT", tmp_project):
             result = executor._load_guardrails()
-        assert "AGENT.md" not in result
+        assert "AGENTS.md" not in result
         assert "Architecture" in result
 
     def test_no_docs_dir(self, executor, tmp_project):
@@ -376,12 +376,14 @@ class TestCheckoutBranch:
 
     def test_already_on_branch(self, executor):
         self._mock_git(executor, [
+            MagicMock(returncode=0, stdout=".git\n", stderr=""),
             MagicMock(returncode=0, stdout="feat-mvp\n", stderr=""),
         ])
         executor._checkout_branch()  # should return without checkout
 
     def test_branch_exists_checkout(self, executor):
         self._mock_git(executor, [
+            MagicMock(returncode=0, stdout=".git\n", stderr=""),
             MagicMock(returncode=0, stdout="main\n", stderr=""),
             MagicMock(returncode=0, stdout="", stderr=""),
             MagicMock(returncode=0, stdout="", stderr=""),
@@ -390,7 +392,17 @@ class TestCheckoutBranch:
 
     def test_branch_not_exists_create(self, executor):
         self._mock_git(executor, [
+            MagicMock(returncode=0, stdout=".git\n", stderr=""),
             MagicMock(returncode=0, stdout="main\n", stderr=""),
+            MagicMock(returncode=1, stdout="", stderr="not found"),
+            MagicMock(returncode=0, stdout="", stderr=""),
+        ])
+        executor._checkout_branch()
+
+    def test_unborn_branch_can_create_feature_branch(self, executor):
+        self._mock_git(executor, [
+            MagicMock(returncode=0, stdout=".git\n", stderr=""),
+            MagicMock(returncode=1, stdout="", stderr=""),
             MagicMock(returncode=1, stdout="", stderr="not found"),
             MagicMock(returncode=0, stdout="", stderr=""),
         ])
@@ -398,6 +410,7 @@ class TestCheckoutBranch:
 
     def test_checkout_fails_exits(self, executor):
         self._mock_git(executor, [
+            MagicMock(returncode=0, stdout=".git\n", stderr=""),
             MagicMock(returncode=0, stdout="main\n", stderr=""),
             MagicMock(returncode=1, stdout="", stderr=""),
             MagicMock(returncode=1, stdout="", stderr="dirty tree"),
@@ -455,6 +468,22 @@ class TestCommitStep:
         assert len(commit_msgs) == 1
         assert "chore" in commit_msgs[0]
 
+    def test_unborn_branch_unstages_metadata_with_rm_cached(self, executor):
+        calls = []
+        def fake_git(*args):
+            calls.append(args)
+            if args[:3] == ("rev-parse", "--verify", "HEAD"):
+                return MagicMock(returncode=1, stdout="", stderr="no HEAD")
+            if args[:2] == ("diff", "--cached"):
+                return MagicMock(returncode=1)
+            return MagicMock(returncode=0, stdout="", stderr="")
+        executor._run_git = fake_git
+
+        executor._commit_step(2, "ui")
+
+        assert ("rm", "--cached", "--ignore-unmatch", "--", "phases/0-mvp/step2-output.json") in calls
+        assert ("rm", "--cached", "--ignore-unmatch", "--", "phases/0-mvp/index.json") in calls
+
 
 # ---------------------------------------------------------------------------
 # _invoke_codex (mocked)
@@ -470,9 +499,13 @@ class TestInvokeCodex:
             output = executor._invoke_codex(step, preamble)
 
         cmd = mock_run.call_args[0][0]
-        assert cmd[0] == "codex"
-        assert "exec" in cmd
+        assert cmd[:2] == ["codex", "exec"]
         assert "--json" in cmd
+        assert "--sandbox" in cmd
+        assert "danger-full-access" in cmd
+        assert 'approval_policy="never"' in cmd
+        assert "--cd" in cmd
+        assert str(executor._root) in cmd
         assert "PREAMBLE" in cmd[-1]
         assert "UI를 구현하세요" in cmd[-1]
 

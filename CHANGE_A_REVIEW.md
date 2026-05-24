@@ -8,7 +8,7 @@
 - **미적용**: 변경 B(retry 시 lightweight guardrails)는 모델이 docs 읽기를 누락할 리스크가 있어 보류.
 - **미적용**: 변경 C 외 다른 제안(focused mode, MAX_RETRIES 축소, status correction mini-prompt, full/focused 스위치)도 전부 보류.
 
-`MAX_RETRIES = 3`, 첫 시도의 full guardrails(`AGENT.md` + `docs/*.md` 전체) 주입, step.md 전체 전달, AC/테스트/status/commit 강제 규칙은 **그대로 유지**.
+`MAX_RETRIES = 3`, 첫 시도의 full guardrails(`AGENTS.md` + `docs/*.md` 전체) 주입, step.md 전체 전달, AC/테스트/status/commit 강제 규칙은 **그대로 유지**.
 
 ---
 
@@ -167,7 +167,7 @@ f"   - 사용자 개입이 필요한 경우 (API 키, 인증, 수동 설정 등)
 - `scripts/execute.py` — `_build_step_context`, `_build_preamble` 작업 규칙 5번
 - `scripts/test_execute.py` — 신규 테스트 7개
 
-`AGENT.md`, `docs/*.md`, `phases/` 구조, git/checkout/commit 로직, retry 정책은 **변경 없음**.
+`AGENTS.md`, `docs/*.md`, `phases/` 구조, git/checkout/commit 로직, retry 정책은 **변경 없음**.
 
 ---
 

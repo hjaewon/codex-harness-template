@@ -12,7 +12,7 @@ Use the Harness workflow to turn a requested implementation task into small, exe
 ## Workflow
 
 1. Explore `/docs/` first, especially `PRD.md`, `ARCHITECTURE.md`, `ADR.md`, and any other project documents.
-2. Read `AGENT.md` for project rules and CRITICAL constraints.
+2. Read `AGENTS.md` for project rules and CRITICAL constraints.
 3. Discuss unclear requirements or technical decisions with the user before writing phase files.
 4. Draft a multi-step plan and request user approval before creating `phases/` files.
 5. After approval, create or update:
@@ -97,7 +97,7 @@ npm test
 ## 검증 절차
 
 1. 위 AC 커맨드를 실행한다.
-2. ARCHITECTURE.md, ADR, AGENT.md의 CRITICAL 규칙을 확인한다.
+2. ARCHITECTURE.md, ADR, AGENTS.md의 CRITICAL 규칙을 확인한다.
 3. `phases/{task-name}/index.json`의 해당 step을 업데이트한다.
 
 ## 금지사항
@@ -111,7 +111,7 @@ npm test
 `scripts/execute.py` automatically:
 
 - creates or checks out `feat-<task-name>`
-- injects `AGENT.md` and `docs/*.md` into each step prompt
+- injects `AGENTS.md` and `docs/*.md` into each step prompt
 - passes completed step summaries to later steps
 - retries failed steps up to three times with prior error feedback
 - separates code commits from metadata commits
