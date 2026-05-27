@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& 'C:/Program Files/Git/bin/bash.exe' ((git rev-parse --show-toplevel) + '/.codex/hooks/tdd-guard.sh')\"",
+            "command": "bash \"$(git rev-parse --show-toplevel)/.codex/hooks/tdd-guard.sh\"",
             "timeout": 30,
             "statusMessage": "Checking TDD guard"
           }
