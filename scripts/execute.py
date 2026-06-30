@@ -10,6 +10,7 @@ import argparse
 import contextlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -20,6 +21,14 @@ from pathlib import Path
 from typing import Optional
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def configure_stdio():
+    """Windows 콘솔/리다이렉션에서도 진행 표시 문자가 깨지지 않게 한다."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8", errors="replace")
 
 
 @contextlib.contextmanager
@@ -103,6 +112,24 @@ class StepExecutor:
     @staticmethod
     def _write_json(p: Path, data: dict):
         p.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    @staticmethod
+    def _resolve_codex_command() -> str:
+        override = os.environ.get("CODEX_EXECUTABLE")
+        if override:
+            return override
+
+        candidates = ["codex"]
+        if os.name == "nt":
+            # Python CreateProcess cannot launch PowerShell shims directly.
+            candidates = ["codex.cmd", "codex.exe", "codex.bat", "codex"]
+
+        for candidate in candidates:
+            found = shutil.which(candidate)
+            if found:
+                return found
+
+        return "codex"
 
     # --- git ---
 
@@ -251,7 +278,7 @@ class StepExecutor:
         prompt = preamble + step_file.read_text(encoding="utf-8")
         result = subprocess.run(
             [
-                "codex",
+                self._resolve_codex_command(),
                 "exec",
                 "--json",
                 "--sandbox",
@@ -260,9 +287,14 @@ class StepExecutor:
                 'approval_policy="never"',
                 "--cd",
                 self._root,
-                prompt,
+                "-",
             ],
-            cwd=self._root, capture_output=True, text=True, timeout=1800,
+            cwd=self._root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            input=prompt,
+            timeout=1800,
         )
 
         if result.returncode != 0:
@@ -430,6 +462,7 @@ class StepExecutor:
 
 
 def main():
+    configure_stdio()
     parser = argparse.ArgumentParser(description="Harness Step Executor")
     parser.add_argument("phase_dir", help="Phase directory name (e.g. 0-mvp)")
     parser.add_argument("--push", action="store_true", help="Push branch after completion")

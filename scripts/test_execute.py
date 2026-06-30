@@ -490,7 +490,7 @@ class TestCommitStep:
 # ---------------------------------------------------------------------------
 
 class TestInvokeCodex:
-    def test_invokes_codex_with_correct_args(self, executor):
+    def test_invokes_codex_with_correct_args_and_prompt_on_stdin(self, executor):
         mock_result = MagicMock(returncode=0, stdout='{"result": "ok"}', stderr="")
         step = {"step": 2, "name": "ui"}
         preamble = "PREAMBLE\n"
@@ -499,15 +499,30 @@ class TestInvokeCodex:
             output = executor._invoke_codex(step, preamble)
 
         cmd = mock_run.call_args[0][0]
-        assert cmd[:2] == ["codex", "exec"]
+        assert cmd[1] == "exec"
+        assert Path(cmd[0]).name in {"codex", "codex.cmd", "codex.exe", "codex.bat"}
         assert "--json" in cmd
         assert "--sandbox" in cmd
         assert "danger-full-access" in cmd
         assert 'approval_policy="never"' in cmd
         assert "--cd" in cmd
         assert str(executor._root) in cmd
-        assert "PREAMBLE" in cmd[-1]
-        assert "UI를 구현하세요" in cmd[-1]
+        assert cmd[-1] == "-"
+        assert "PREAMBLE" not in cmd
+        assert "UI를 구현하세요" not in cmd
+        assert "PREAMBLE" in mock_run.call_args[1]["input"]
+        assert "UI를 구현하세요" in mock_run.call_args[1]["input"]
+        assert mock_run.call_args[1]["encoding"] == "utf-8"
+
+    def test_resolves_windows_cmd_shim_before_powershell_shim(self):
+        def fake_which(name):
+            return {
+                "codex.cmd": r"C:\Users\me\AppData\Roaming\npm\codex.cmd",
+                "codex": r"C:\Users\me\AppData\Roaming\npm\codex.ps1",
+            }.get(name)
+
+        with patch.object(ex.os, "name", "nt"), patch("shutil.which", side_effect=fake_which):
+            assert ex.StepExecutor._resolve_codex_command().endswith("codex.cmd")
 
     def test_saves_output_json(self, executor):
         mock_result = MagicMock(returncode=0, stdout='{"ok": true}', stderr="")
